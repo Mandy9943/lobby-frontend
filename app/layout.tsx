@@ -1,19 +1,18 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import { Sidebar } from '@/components/sidebar'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from "@/components/theme-provider";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'Lobby Bot',
-  description: 'AI-powered email campaigns',
-}
+  title: "Lobby Bot",
+  description: "AI-powered email campaigns",
+};
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -24,13 +23,9 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
-

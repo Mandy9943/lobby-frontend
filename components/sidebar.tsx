@@ -1,20 +1,23 @@
-import Link from 'next/link'
-import { Home, Mail, Users, Briefcase, UserCircle, Plug, MoreVertical } from 'lucide-react'
-import { TeamSwitcher } from './team-switcher'
-import { Separator } from '@/components/ui/separator'
-import { SettingsMenu, DropdownMenuTrigger } from './settings-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-
+"use client";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { Briefcase, Home, Mail, Plug, UserCircle, Users } from "lucide-react";
+import Link from "next/link";
+import { SettingsMenu } from "./settings-menu";
+import { TeamSwitcher } from "./team-switcher";
 const navItems = [
-  { name: 'Home', href: '/', icon: Home },
-  { name: 'Campaigns', href: '/campaigns', icon: Briefcase },
-  { name: 'Emails', href: '/emails', icon: Mail },
-  { name: 'Responders', href: '/responders', icon: Users },
-  { name: 'Accounts', href: '/accounts', icon: UserCircle },
-  { name: 'Integrations', href: '/integrations', icon: Plug },
-]
+  { name: "Home", href: "/", icon: Home },
+  { name: "Campaigns", href: "/campaigns", icon: Briefcase },
+  { name: "Emails", href: "/emails", icon: Mail },
+  { name: "Responders", href: "/responders", icon: Users },
+  { name: "Accounts", href: "/accounts", icon: UserCircle },
+  { name: "Integrations", href: "/integrations", icon: Plug },
+];
 
 export function Sidebar() {
+  const { user } = useAuth();
+
   return (
     <nav className="w-64 bg-background border-r p-4 flex flex-col h-screen">
       <div className="space-y-4">
@@ -38,13 +41,12 @@ export function Sidebar() {
         <SettingsMenu>
           <div className="flex items-center gap-3 cursor-pointer">
             <Avatar className="h-6 w-6 bg-[#FF5D0A]">
-              <AvatarFallback>A</AvatarFallback>
+              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
             </Avatar>
-            <p className="text-sm text-muted-foreground">acme@gmail.com</p>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
         </SettingsMenu>
       </div>
     </nav>
-  )
+  );
 }
-

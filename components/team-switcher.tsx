@@ -1,15 +1,7 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  CaretSortIcon,
-  CheckIcon,
-  PlusCircledIcon,
-  GearIcon,
-} from "@radix-ui/react-icons"
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -18,7 +10,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -26,15 +18,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  CaretSortIcon,
+  CheckIcon,
+  PlusCircledIcon,
+} from "@radix-ui/react-icons";
+import * as React from "react";
 
 const groups = [
   {
@@ -51,18 +49,21 @@ const groups = [
       },
     ],
   },
-]
+];
 
 type Team = {
-  label: string
-  value: string
-  members?: string
-}
+  label: string;
+  value: string;
+  members?: string;
+};
 
 export function TeamSwitcher() {
-  const [open, setOpen] = React.useState(false)
-  const [showNewTeamDialog, setShowNewTeamDialog] = React.useState(false)
-  const [selectedTeam, setSelectedTeam] = React.useState<Team>(groups[0].teams[0])
+  const { user } = useAuth();
+  const [open, setOpen] = React.useState(false);
+  const [showNewTeamDialog, setShowNewTeamDialog] = React.useState(false);
+  const [selectedTeam, setSelectedTeam] = React.useState<Team>(
+    groups[0].teams[0]
+  );
 
   return (
     <Dialog open={showNewTeamDialog} onOpenChange={setShowNewTeamDialog}>
@@ -77,9 +78,9 @@ export function TeamSwitcher() {
             className="w-52 justify-between hover:bg-gray-700"
           >
             <Avatar className="mr-2 h-5 w-5">
-              <AvatarFallback>{selectedTeam.label[0]}</AvatarFallback>
+              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
             </Avatar>
-            {selectedTeam.label}
+            {user?.name}
             <CaretSortIcon className="ml-auto h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -94,8 +95,8 @@ export function TeamSwitcher() {
                     <CommandItem
                       key={team.value}
                       onSelect={() => {
-                        setSelectedTeam(team)
-                        setOpen(false)
+                        setSelectedTeam(team);
+                        setOpen(false);
                       }}
                       className="text-sm"
                     >
@@ -121,8 +122,8 @@ export function TeamSwitcher() {
               <CommandGroup>
                 <CommandItem
                   onSelect={() => {
-                    setShowNewTeamDialog(true)
-                    setOpen(false)
+                    setShowNewTeamDialog(true);
+                    setOpen(false);
                   }}
                 >
                   <PlusCircledIcon className="mr-2 h-5 w-5" />
@@ -156,6 +157,5 @@ export function TeamSwitcher() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-
