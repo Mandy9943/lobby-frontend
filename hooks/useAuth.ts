@@ -9,6 +9,14 @@ export interface User {
   email: string;
   name?: string;
   image?: string;
+  projects?: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+    userId: string;
+    gmailAccounts: string[];
+  }[];
 }
 
 export function useAuth() {

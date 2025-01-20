@@ -2,9 +2,9 @@ import { ArrowRight, Globe, Mail, Search, SendHorizontal } from "lucide-react";
 
 const features = [
   {
-    title: "Smart Search",
+    title: "Smart Leads Search",
     description:
-      "Enter your criteria and let our AI find the perfect matches for your business",
+      "Enter your criteria and let our AI search. Try specific keywords or use our pre-defined search templates",
     icon: Search,
     color: "purple",
   },
@@ -16,15 +16,16 @@ const features = [
     color: "blue",
   },
   {
-    title: "Contact Information",
+    title: "Company Profile Setup",
     description:
-      "Automatically discover verified contact details and social profiles",
+      "Complete your company profile to ensure personalized and effective outreach",
     icon: Mail,
     color: "green",
   },
   {
-    title: "Ready for Outreach",
-    description: "Get a curated list ready for your personalized campaign",
+    title: "Campaign Creation",
+    description:
+      "Create targeted campaigns with your curated list of prospects",
     icon: SendHorizontal,
     color: "orange",
   },

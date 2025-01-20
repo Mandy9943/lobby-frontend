@@ -27,6 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import { useProject } from "@/hooks/useProjects";
 import {
   CaretSortIcon,
   CheckIcon,
@@ -34,36 +35,22 @@ import {
 } from "@radix-ui/react-icons";
 import * as React from "react";
 
-const groups = [
-  {
-    label: "Teams",
-    teams: [
-      {
-        label: "Acme Corp",
-        value: "acme-corp",
-        members: "1 member",
-      },
-      {
-        label: "My next team",
-        value: "next-team",
-      },
-    ],
-  },
-];
-
-type Team = {
-  label: string;
-  value: string;
-  members?: string;
-};
-
 export function TeamSwitcher() {
-  const { user } = useAuth();
   const [open, setOpen] = React.useState(false);
   const [showNewTeamDialog, setShowNewTeamDialog] = React.useState(false);
-  const [selectedTeam, setSelectedTeam] = React.useState<Team>(
-    groups[0].teams[0]
-  );
+  const { user } = useAuth();
+
+  const { project: selectedProject, changeProject } = useProject();
+
+  const groups = [
+    {
+      label: "Projects",
+      projects: user?.projects?.map((project) => ({
+        label: project.name,
+        value: project.id,
+      })),
+    },
+  ];
 
   return (
     <Dialog open={showNewTeamDialog} onOpenChange={setShowNewTeamDialog}>
@@ -78,9 +65,11 @@ export function TeamSwitcher() {
             className="w-52 justify-between hover:bg-gray-700"
           >
             <Avatar className="mr-2 h-5 w-5">
-              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+              <AvatarFallback>
+                {selectedProject?.name?.charAt(0)}
+              </AvatarFallback>
             </Avatar>
-            {user?.name}
+            {selectedProject?.name}
             <CaretSortIcon className="ml-auto h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -91,25 +80,25 @@ export function TeamSwitcher() {
               <CommandEmpty>No team found.</CommandEmpty>
               {groups.map((group) => (
                 <CommandGroup key={group.label} heading={group.label}>
-                  {group.teams.map((team) => (
+                  {group.projects?.map((project) => (
                     <CommandItem
-                      key={team.value}
+                      key={project.value}
                       onSelect={() => {
-                        setSelectedTeam(team);
+                        changeProject(project.value);
                         setOpen(false);
                       }}
                       className="text-sm"
                     >
                       <Avatar className="mr-2 h-5 w-5">
-                        <AvatarFallback>{team.label[0]}</AvatarFallback>
+                        <AvatarFallback>{project.label[0]}</AvatarFallback>
                       </Avatar>
-                      <span>{team.label}</span>
-                      {team.members ? (
+                      <span>{project.label}</span>
+                      {/* {project.members ? (
                         <span className="ml-auto text-xs text-gray-400">
-                          {team.members}
+                          {project.members}
                         </span>
-                      ) : null}
-                      {team.value === selectedTeam.value && (
+                      ) : null} */}
+                      {project.value === selectedProject?.id && (
                         <CheckIcon className="ml-auto h-4 w-4" />
                       )}
                     </CommandItem>
@@ -127,7 +116,7 @@ export function TeamSwitcher() {
                   }}
                 >
                   <PlusCircledIcon className="mr-2 h-5 w-5" />
-                  New Team
+                  New Project
                 </CommandItem>
               </CommandGroup>
             </CommandList>
@@ -136,15 +125,15 @@ export function TeamSwitcher() {
       </Popover>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create team</DialogTitle>
+          <DialogTitle>Create project</DialogTitle>
           <DialogDescription>
-            Add a new team to manage products and customers.
+            Add a new project to manage products and customers.
           </DialogDescription>
         </DialogHeader>
         <div>
           <div className="space-y-4 py-2 pb-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Team name</Label>
+              <Label htmlFor="name">Project name</Label>
               <Input id="name" placeholder="Acme Inc." />
             </div>
           </div>

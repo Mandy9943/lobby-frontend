@@ -189,16 +189,20 @@ export default function EmailValidationTable() {
   // Default view (searchStatus === "idle")
 
   return (
-    <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
-      <div className="max-w-4xl mx-auto w-full space-y-12">
-        <SearchSection />
-        <FeatureCards />
-        <SearchForm
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          isLoading={false}
-          onSubmit={handleSearch}
-        />
+    <div>
+      <ResultsHeader shouldApprove={false} />
+
+      <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
+        <div className="max-w-4xl mx-auto w-full space-y-12">
+          <SearchSection />
+          <FeatureCards />
+          <SearchForm
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            isLoading={false}
+            onSubmit={handleSearch}
+          />
+        </div>
       </div>
     </div>
   );
