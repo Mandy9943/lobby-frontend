@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +31,18 @@ import {
   OutreachGoal,
 } from "@/types/company.types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-export function CompanyProfileDialog() {
-  const [open, setOpen] = useState(false);
+function CompanyProfileDialog({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
+  console.log("render");
 
   const companyProfileSchema = z.object({
     website: z
@@ -123,9 +128,6 @@ export function CompanyProfileDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">Your Company Profile</Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Your Company Profile</DialogTitle>
@@ -260,3 +262,5 @@ export function CompanyProfileDialog() {
     </Dialog>
   );
 }
+
+export default CompanyProfileDialog;

@@ -1,6 +1,12 @@
-import { CompanyProfileDialog } from "@/components/company-profile-dialog";
 import { Button } from "@/components/ui/button";
 import { useGetCompanyProfile } from "@/hooks/useCompanies";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+
+const CompanyProfileDialog = dynamic(
+  () => import("@/components/company-profile-dialog"),
+  { ssr: false }
+);
 
 export function ResultsHeader({
   shouldApprove = true,
@@ -8,12 +14,15 @@ export function ResultsHeader({
   shouldApprove?: boolean;
 }) {
   const { fetchedProfile } = useGetCompanyProfile();
-  console.log(fetchedProfile);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex items-center w-full px-4  h-[65px] border-b border-border">
       <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-        <CompanyProfileDialog />
+        <Button variant="outline" onClick={() => setOpen(true)}>
+          Your Company Profile
+        </Button>
+        {open && <CompanyProfileDialog open={open} setOpen={setOpen} />}
 
         {shouldApprove && (
           <Button
