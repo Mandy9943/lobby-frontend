@@ -25,5 +25,9 @@ export interface ScrapeResult {
 
 export interface SearchLeadsResponse {
   message: string;
+  query: string;
   data: ScrapeResult[];
+  totalDomains: number;
+  successfulCrawls: number;
+  totalTimeMs: number;
 }

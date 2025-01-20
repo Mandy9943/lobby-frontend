@@ -19,9 +19,16 @@ import { socialIcons } from "./socialIcons";
 interface ResultsTableProps {
   results: SearchLeadsResponse["data"];
   onNewSearch: () => void;
+  onDeleteRow: (domain: string) => void;
+  onRestoreAll: () => void;
 }
 
-export function ResultsTable({ results, onNewSearch }: ResultsTableProps) {
+export function ResultsTable({
+  results,
+  onNewSearch,
+  onDeleteRow,
+  onRestoreAll,
+}: ResultsTableProps) {
   return (
     <div className="flex-grow overflow-auto p-4 md:p-6 fade-in">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -71,6 +78,7 @@ export function ResultsTable({ results, onNewSearch }: ResultsTableProps) {
                       key={result.domain}
                       index={index + 1}
                       result={result}
+                      onDeleteRow={onDeleteRow}
                     />
                   ))}
                 </TableBody>
@@ -79,7 +87,10 @@ export function ResultsTable({ results, onNewSearch }: ResultsTableProps) {
           </div>
         )}
 
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-8 gap-2">
+          <Button onClick={onRestoreAll} variant="outline">
+            Restore All
+          </Button>
           <Button onClick={onNewSearch} variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             New Search
@@ -93,9 +104,10 @@ export function ResultsTable({ results, onNewSearch }: ResultsTableProps) {
 interface ResultRowProps {
   index: number;
   result: SearchLeadsResponse["data"][0];
+  onDeleteRow: (domain: string) => void;
 }
 
-function ResultRow({ index, result }: ResultRowProps) {
+function ResultRow({ index, result, onDeleteRow }: ResultRowProps) {
   const socialLinks = Object.entries(result.social_links || {}).filter(
     ([, urls]) => urls && urls.length > 0
   );
@@ -172,6 +184,7 @@ function ResultRow({ index, result }: ResultRowProps) {
           variant="ghost"
           size="icon"
           className="text-red-500 hover:text-red-700 hover:bg-red-200"
+          onClick={() => onDeleteRow(result.domain)}
         >
           <Trash2 className="h-5 w-5" />
         </Button>
