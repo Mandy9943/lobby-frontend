@@ -1,9 +1,13 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { searchLeads } from "@/services/leads-api/search-leads";
-import { ScrapeResult, SearchLeadsResponse } from "@/types/search-leads.types";
-import { useEffect, useState } from "react";
+import {
+  createSearchLeadsJob,
+  getSearchJobStatus,
+} from "@/services/leads-api/search-leads";
+import { ScrapeResult } from "@/types/search-leads.types";
+import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { FeatureCards } from "./components/FeatureCards";
 import { LoadingFacts } from "./components/LoadingFacts";
 import { ResultsHeader } from "./components/ResultsHeader";
@@ -12,82 +16,105 @@ import { SearchForm } from "./components/SearchForm";
 import { SearchSection } from "./components/SearchSection";
 
 export default function EmailValidationTable() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const localStorageKey = user ? `searchJob_${user.email}` : null;
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<ScrapeResult[]>([]);
-  const localStorageKey = user ? `searchResponse_${user.email}` : null;
-  const [searchResponse, setSearchResponse] =
-    useState<SearchLeadsResponse | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [searchStatus, setSearchStatus] = useState<
+    "idle" | "pending" | "done" | "failed"
+  >("idle");
 
+  const [results, setResults] = useState<ScrapeResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const originalResults = useRef<ScrapeResult[]>([]);
+
+  // Load saved job state on mount
   useEffect(() => {
     if (!localStorageKey) return;
 
-    const savedData = localStorage.getItem(localStorageKey);
-    if (savedData) {
+    const savedState = localStorage.getItem(localStorageKey);
+    console.log("savedState", savedState);
+
+    if (savedState) {
       try {
-        const parsed: SearchLeadsResponse = JSON.parse(savedData);
-        // Only restore if the user's email matches the one in localStorageKey
-        // (But if you're storing separate keys per user, this is automatically guaranteed.)
-        setSearchResponse(parsed);
-        setResults(parsed.data);
-        setShowResults(true);
+        const { jobId: savedJobId, query } = JSON.parse(savedState);
+        setJobId(savedJobId);
+        setSearchQuery(query);
+        console.log("savedJobId", savedJobId);
+
+        setSearchStatus("pending"); // Assume it's still pending until we check
       } catch (err) {
-        console.error("Error parsing saved search response:", err);
+        console.error("Error parsing saved job state:", err);
       }
     }
   }, [localStorageKey]);
 
-  useEffect(() => {
-    if (searchResponse && localStorageKey) {
-      localStorage.setItem(localStorageKey, JSON.stringify(searchResponse));
+  // SWR-based re-validation/polling for job status
+  const { data: statusData, error: statusError } = useSWR(
+    jobId && searchStatus !== "done" && searchStatus !== "failed"
+      ? `/api/search-jobs/${jobId}/status`
+      : null,
+    () => getSearchJobStatus(jobId!),
+    {
+      refreshInterval: 3000, // Poll every 3 seconds
     }
-  }, [searchResponse, localStorageKey]);
+  );
 
-  if (authLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
-        <LoadingFacts />
-      </div>
-    );
-  }
+  // Whenever we get new statusData, update state accordingly
+  useEffect(() => {
+    if (!statusData) return;
+    if (statusData.status === "done") {
+      setSearchStatus("done");
+      setResults(statusData.result?.data || []);
+      originalResults.current = statusData.result?.data || [];
+    } else if (statusData.status === "failed") {
+      setSearchStatus("failed");
+      setError(statusData.result?.message || "Search failed");
+      if (localStorageKey) localStorage.removeItem(localStorageKey);
+    }
+  }, [statusData, localStorageKey]);
 
-  if (!user) {
-    // If user is null, you can choose to redirect or
-    // simply show an error message
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-center text-xl">
-          You must be logged in to view this page.
-        </p>
-      </div>
-    );
-  }
+  // Handle case where the fetch itself failed (statusError)
+  useEffect(() => {
+    if (statusError) {
+      setSearchStatus("failed");
+      setError("Failed to check search status");
+    }
+  }, [statusError]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setSearchStatus("pending");
+    setError(null);
 
     try {
-      const res = await searchLeads(searchQuery);
-      setSearchResponse(res);
-      setResults(res.data);
-      setShowResults(true);
+      const { jobId: newJobId } = await createSearchLeadsJob(searchQuery);
+      setJobId(newJobId);
+
+      // Save job info to localStorage
+      if (localStorageKey) {
+        localStorage.setItem(
+          localStorageKey,
+          JSON.stringify({
+            jobId: newJobId,
+            query: searchQuery,
+          })
+        );
+      }
     } catch (err) {
-      console.error("Error searching leads:", err);
-    } finally {
-      setIsLoading(false);
+      console.error("Error starting search:", err);
+      setSearchStatus("failed");
+      setError("Failed to start search");
     }
   };
 
   const handleNewSearch = () => {
-    // 4) Clear out all state and remove from localStorage for this user
-    setShowResults(false);
+    setSearchStatus("idle");
     setSearchQuery("");
-    setSearchResponse(null);
+    setJobId(null);
     setResults([]);
+    setError(null);
     if (localStorageKey) {
       localStorage.removeItem(localStorageKey);
     }
@@ -100,59 +127,79 @@ export default function EmailValidationTable() {
 
   // Restores all data from the original searchResponse
   const handleRestoreAll = () => {
-    if (searchResponse) {
-      setResults(searchResponse.data);
+    console.log("handleRestoreAll", statusData);
+
+    if (originalResults.current) {
+      setResults(originalResults.current);
     }
   };
 
-  if (isLoading) {
+  if (searchStatus === "pending") {
     return (
-      <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
-        <LoadingFacts />
-      </div>
-    );
-  }
-
-  if (!showResults) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
-        <div className="max-w-4xl mx-auto w-full space-y-12">
-          <SearchSection />
-          <FeatureCards />
-          <SearchForm
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            isLoading={isLoading}
-            onSubmit={handleSearch}
-          />
+      <div>
+        <ResultsHeader shouldApprove={false} />
+        <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
+          <LoadingFacts />
+          <p className="text-center mt-4">Checking on your results...</p>
         </div>
       </div>
     );
   }
 
-  // Compute how many results have at least one email
-  const resultsWithEmailCount = results.filter(
-    (r) => r.email && r.email.length > 0
-  ).length;
+  if (searchStatus === "failed") {
+    return (
+      <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
+        <div className="max-w-4xl mx-auto w-full space-y-6">
+          <div className="p-4 bg-red-100 text-red-700 rounded-md">
+            <p>Error: {error}</p>
+            <button
+              onClick={handleNewSearch}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (searchStatus === "done") {
+    return (
+      <div className="flex flex-col h-screen bg-background text-foreground">
+        <ResultsHeader />
+        <div className="max-w-7xl mx-auto mt-6 px-4 text-sm text-muted-foreground">
+          <p>Query used: {searchQuery}</p>
+          <p>
+            Results with email:{" "}
+            {results.filter((r) => r.email && r.email.length > 0).length}
+          </p>
+        </div>
+
+        <ResultsTable
+          results={results}
+          onNewSearch={handleNewSearch}
+          onDeleteRow={handleDeleteRow}
+          onRestoreAll={handleRestoreAll}
+        />
+      </div>
+    );
+  }
+
+  // Default view (searchStatus === "idle")
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <ResultsHeader />
-      {searchResponse && (
-        <div className="max-w-7xl mx-auto mt-6 px-4 text-sm text-muted-foreground">
-          <p>Query used: {searchResponse.query}</p>
-          <p>Time taken (ms): {searchResponse.totalTimeMs}</p>
-          <p>Results found: {searchResponse.data.length}</p>
-          <p>Results containing at least one email: {resultsWithEmailCount}</p>
-        </div>
-      )}
-
-      <ResultsTable
-        results={results}
-        onNewSearch={handleNewSearch}
-        onDeleteRow={handleDeleteRow}
-        onRestoreAll={handleRestoreAll}
-      />
+    <div className="flex flex-col min-h-screen bg-background p-4 md:p-6 mt-20">
+      <div className="max-w-4xl mx-auto w-full space-y-12">
+        <SearchSection />
+        <FeatureCards />
+        <SearchForm
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isLoading={false}
+          onSubmit={handleSearch}
+        />
+      </div>
     </div>
   );
 }
