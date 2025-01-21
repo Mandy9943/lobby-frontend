@@ -6,6 +6,7 @@ import {
   getSearchJobStatus,
 } from "@/services/leads-api/search-leads";
 import { ScrapeResult } from "@/types/search-leads.types";
+import { Loader } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { FeatureCards } from "./components/FeatureCards";
@@ -29,6 +30,15 @@ export default function EmailValidationTable() {
   const [error, setError] = useState<string | null>(null);
   const originalResults = useRef<ScrapeResult[]>([]);
 
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Add this new state to track if there's more data available
+  const [hasMoreData, setHasMoreData] = useState(true);
+
+  // Add a new piece of state for loadMoreJobId
+  const [loadMoreJobId, setLoadMoreJobId] = useState<string | null>(null);
+
   // Load saved job state on mount
   useEffect(() => {
     if (!localStorageKey) return;
@@ -38,15 +48,44 @@ export default function EmailValidationTable() {
 
     if (savedState) {
       try {
-        const { jobId: savedJobId, query } = JSON.parse(savedState);
+        const {
+          jobId: savedJobId,
+          query,
+          results: savedResults,
+          page: savedPage,
+        } = JSON.parse(savedState);
         setJobId(savedJobId);
         setSearchQuery(query);
-        console.log("savedJobId", savedJobId);
 
-        setSearchStatus("pending"); // Assume it's still pending until we check
+        if (savedResults) {
+          setResults(savedResults);
+          originalResults.current = savedResults;
+          setSearchStatus("done");
+        } else {
+          setSearchStatus("pending");
+        }
+
+        if (savedPage) {
+          setPage(savedPage);
+        }
+
+        console.log("savedJobId", savedJobId);
       } catch (err) {
         console.error("Error parsing saved job state:", err);
       }
+    }
+  }, [localStorageKey]);
+
+  // On mount, restore loadMoreJobId from localStorage if it exists
+  useEffect(() => {
+    if (!localStorageKey) return;
+
+    const savedLoadMoreJobId = localStorage.getItem(
+      `${localStorageKey}_loadMoreJobId`
+    );
+    if (savedLoadMoreJobId) {
+      setLoadMoreJobId(savedLoadMoreJobId);
+      setLoadingMore(true); // We assume it's still in progress
     }
   }, [localStorageKey]);
 
@@ -61,19 +100,46 @@ export default function EmailValidationTable() {
     }
   );
 
-  // Whenever we get new statusData, update state accordingly
+  // Create a new SWR for loadMoreJobId, separate from your main job's SWR
+  const { data: loadMoreStatus, error: loadMoreError } = useSWR(
+    loadMoreJobId ? `/api/search-jobs/${loadMoreJobId}/status` : null,
+    () => getSearchJobStatus(loadMoreJobId!),
+    {
+      refreshInterval: 3000,
+    }
+  );
+
+  // Modify the useEffect that handles statusData to save initial results
   useEffect(() => {
     if (!statusData) return;
     if (statusData.status === "done") {
       setSearchStatus("done");
       setResults(statusData.result?.data || []);
       originalResults.current = statusData.result?.data || [];
+
+      // Save initial results to localStorage
+      if (localStorageKey && statusData.result?.data) {
+        localStorage.setItem(
+          localStorageKey,
+          JSON.stringify({
+            jobId,
+            query: searchQuery,
+            results: statusData.result.data,
+            page: 1,
+          })
+        );
+      }
+
+      // Check if there were any successful crawls
+      if (statusData.result?.successfulCrawls === 0) {
+        setHasMoreData(false);
+      }
     } else if (statusData.status === "failed") {
       setSearchStatus("failed");
       setError(statusData.result?.message || "Search failed");
       if (localStorageKey) localStorage.removeItem(localStorageKey);
     }
-  }, [statusData, localStorageKey]);
+  }, [statusData, localStorageKey, jobId, searchQuery]);
 
   // Handle case where the fetch itself failed (statusError)
   useEffect(() => {
@@ -83,10 +149,84 @@ export default function EmailValidationTable() {
     }
   }, [statusError]);
 
+  // When loadMoreStatus changes to "done", we append new data to results, increment page, and clear loadMoreJobId from storage
+  useEffect(() => {
+    if (!loadMoreStatus) return;
+    if (loadMoreStatus.status === "done") {
+      // If no successful crawls, mark hasMoreData = false
+      if (loadMoreStatus.result?.successfulCrawls === 0) {
+        setHasMoreData(false);
+        setError("No more results available");
+      }
+
+      // Filter out duplicates:
+      const incomingResults = loadMoreStatus.result?.data ?? [];
+      const uniqueNewResults = incomingResults.filter(
+        (newResult) =>
+          !results.some(
+            (existingResult) => existingResult.domain === newResult.domain
+          )
+      );
+
+      if (uniqueNewResults.length > 0) {
+        const updatedResults = [...results, ...uniqueNewResults];
+        setResults(updatedResults);
+        const newPage = page + 1;
+        setPage(newPage);
+
+        // Save updated results to localStorage
+        if (localStorageKey) {
+          localStorage.setItem(
+            localStorageKey,
+            JSON.stringify({
+              jobId,
+              query: searchQuery,
+              results: updatedResults,
+              page: newPage,
+            })
+          );
+        }
+      } else {
+        setError("No more unique results found");
+        setHasMoreData(false);
+      }
+
+      // Clear the loadMoreJobId and stop loading
+      setLoadMoreJobId(null);
+      localStorage.removeItem(`${localStorageKey}_loadMoreJobId`);
+      setLoadingMore(false);
+    } else if (loadMoreStatus.status === "failed") {
+      setError(loadMoreStatus.result?.message || "Load more job failed");
+      setLoadMoreJobId(null);
+      localStorage.removeItem(`${localStorageKey}_loadMoreJobId`);
+      setLoadingMore(false);
+    }
+  }, [
+    loadMoreStatus,
+    loadMoreError,
+    localStorageKey,
+    results,
+    page,
+    hasMoreData,
+    jobId,
+    searchQuery,
+  ]);
+
+  // Optionally, handle loadMoreError if you want in a parallel effect
+  useEffect(() => {
+    if (loadMoreError) {
+      setError("Failed to check 'Load More' job status");
+      setLoadingMore(false);
+      setLoadMoreJobId(null);
+      localStorage.removeItem(`${localStorageKey}_loadMoreJobId`);
+    }
+  }, [loadMoreError, localStorageKey]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setSearchStatus("pending");
     setError(null);
+    setPage(1);
 
     try {
       const { jobId: newJobId } = await createSearchLeadsJob(searchQuery);
@@ -134,6 +274,30 @@ export default function EmailValidationTable() {
     }
   };
 
+  // Simplify handleLoadMore: just create a new job, store its ID, and rely on the SWR we created above to poll
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    setError(null);
+
+    try {
+      const newPage = page + 1;
+      const { jobId: newJobId } = await createSearchLeadsJob(
+        searchQuery,
+        newPage
+      );
+
+      // Save the new job ID in state and localStorage so we can resume it later
+      setLoadMoreJobId(newJobId);
+      if (localStorageKey) {
+        localStorage.setItem(`${localStorageKey}_loadMoreJobId`, newJobId);
+      }
+    } catch (err) {
+      console.error("Error loading more results:", err);
+      setError("Failed to load more results");
+      setLoadingMore(false);
+    }
+  };
+
   if (searchStatus === "pending") {
     return (
       <div>
@@ -163,6 +327,7 @@ export default function EmailValidationTable() {
       </div>
     );
   }
+  console.log(loadingMore);
 
   if (searchStatus === "done") {
     return (
@@ -182,6 +347,25 @@ export default function EmailValidationTable() {
           onDeleteRow={handleDeleteRow}
           onRestoreAll={handleRestoreAll}
         />
+
+        <div className="max-w-7xl mx-auto px-4 mt-4 mb-6">
+          {loadingMore ? (
+            <p className="text-center text-sm flex items-center gap-2">
+              <Loader className="animate-spin" /> Loading more results...
+            </p>
+          ) : hasMoreData ? (
+            <button
+              onClick={handleLoadMore}
+              className="px-4 py-2 border rounded hover:bg-accent"
+            >
+              Load More Results
+            </button>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">
+              No more results available
+            </p>
+          )}
+        </div>
       </div>
     );
   }
