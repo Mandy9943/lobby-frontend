@@ -17,8 +17,8 @@ export function ResultsHeader({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex items-center w-full px-4  h-[65px] border-b border-border">
-      <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div className="flex items-center w-full px-4   border-b border-border">
+      <div className="w-full max-w-7xl h-[65px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
         <Button variant="outline" onClick={() => setOpen(true)}>
           Your Company Profile
         </Button>
