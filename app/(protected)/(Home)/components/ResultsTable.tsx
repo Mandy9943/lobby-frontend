@@ -43,6 +43,10 @@ export function ResultsTable({
   );
   const hasCompaniesWithEmail = companiesWithEmail.length > 0;
 
+  const allEmailsGenerated = companiesWithEmail.every(
+    (company) => company.emailTemplate
+  );
+
   const handleGenerateAllEmails = async () => {
     if (!project?.id) {
       return;
@@ -93,17 +97,23 @@ export function ResultsTable({
           <>
             {hasCompaniesWithEmail && (
               <div className="flex justify-end mb-4">
-                <Button
-                  onClick={handleGenerateAllEmails}
-                  disabled={generatingAll}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  {generatingAll && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  Generate All Emails ({companiesWithEmail.length})
-                </Button>
+                {allEmailsGenerated ? (
+                  <p className="text-sm text-muted-foreground">
+                    All emails have been generated
+                  </p>
+                ) : (
+                  <Button
+                    onClick={handleGenerateAllEmails}
+                    disabled={generatingAll}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {generatingAll && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    Generate All Emails ({companiesWithEmail.length})
+                  </Button>
+                )}
               </div>
             )}
             <div className="bg-card rounded-lg overflow-hidden">
