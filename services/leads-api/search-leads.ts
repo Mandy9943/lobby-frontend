@@ -8,9 +8,10 @@ export const searchLeads = async (query: string) => {
   return res.data;
 };
 
-export const createSearchLeadsJob = async (query: string) => {
+export const createSearchLeadsJob = async (query: string, page: number = 1) => {
   const res = await leadsApi.post<{ jobId: string }>(`/search-jobs`, {
     query,
+    page,
   });
   return res.data;
 };

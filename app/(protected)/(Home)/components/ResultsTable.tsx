@@ -12,8 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useProject } from "@/hooks/useProjects";
+import {
+  generateMultipleEmails,
+  generateSingleEmail,
+} from "@/services/leads-api/email-generator";
 import { SearchLeadsResponse } from "@/types/search-leads.types";
-import { ArrowLeft, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Share2, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { EmailTemplateDialog } from "./EmailTemplateDialog";
 import { socialIcons } from "./socialIcons";
 
 interface ResultsTableProps {
@@ -29,6 +36,41 @@ export function ResultsTable({
   onDeleteRow,
   onRestoreAll,
 }: ResultsTableProps) {
+  const { project } = useProject();
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const companiesWithEmail = results.filter(
+    (r) => r.email && r.email.length > 0
+  );
+  const hasCompaniesWithEmail = companiesWithEmail.length > 0;
+
+  const handleGenerateAllEmails = async () => {
+    if (!project?.id) {
+      return;
+    }
+    setGeneratingAll(true);
+    try {
+      const response = await generateMultipleEmails(
+        project?.id,
+        companiesWithEmail
+      );
+
+      // Update the email templates in the results
+      response.emailTexts.forEach((emailResponse) => {
+        const result = companiesWithEmail.find(
+          (company) => company.email?.[0] === emailResponse.email
+        );
+        if (result) {
+          result.emailTemplate = emailResponse.emailText;
+        }
+      });
+    } catch (error) {
+      console.error("Failed to generate emails:", error);
+      // You might want to show an error toast here
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
   return (
     <div className="flex-grow overflow-auto p-4 md:p-6 fade-in">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -48,43 +90,63 @@ export function ResultsTable({
             </Button>
           </div>
         ) : (
-          <div className="bg-card rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-border">
-                    <TableHead className="text-muted-foreground">#</TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Name
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">URL</TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Description
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Email
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Socials
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((result, index) => (
-                    <ResultRow
-                      key={result.domain}
-                      index={index + 1}
-                      result={result}
-                      onDeleteRow={onDeleteRow}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
+          <>
+            {hasCompaniesWithEmail && (
+              <div className="flex justify-end mb-4">
+                <Button
+                  onClick={handleGenerateAllEmails}
+                  disabled={generatingAll}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  {generatingAll && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  Generate All Emails ({companiesWithEmail.length})
+                </Button>
+              </div>
+            )}
+            <div className="bg-card rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-border">
+                      <TableHead className="text-muted-foreground">#</TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        URL
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Description
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Email
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Socials
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((result, index) => (
+                      <ResultRow
+                        key={result.domain}
+                        index={index + 1}
+                        result={result}
+                        onDeleteRow={onDeleteRow}
+                        projectId={project?.id}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         <div className="flex justify-center mt-8 gap-2">
@@ -105,90 +167,145 @@ interface ResultRowProps {
   index: number;
   result: SearchLeadsResponse["data"][0];
   onDeleteRow: (domain: string) => void;
+  projectId?: string;
 }
 
-function ResultRow({ index, result, onDeleteRow }: ResultRowProps) {
+function ResultRow({ index, result, onDeleteRow, projectId }: ResultRowProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const hasEmail = result.email && result.email.length > 0;
+
+  const handleGenerateEmail = async () => {
+    if (result.emailTemplate) {
+      setShowEmailDialog(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    if (!projectId) {
+      return;
+    }
+    console.log(projectId);
+    console.log(result);
+
+    try {
+      const response = await generateSingleEmail(projectId, result);
+      result.emailTemplate = response.emailText;
+      setShowEmailDialog(true);
+    } catch (error) {
+      console.error("Failed to generate email:", error);
+      // You might want to show an error toast here
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const socialLinks = Object.entries(result.social_links || {}).filter(
     ([, urls]) => urls && urls.length > 0
   );
   const hasSocials = socialLinks.length > 0;
 
   return (
-    <TableRow>
-      <TableCell>{index}</TableCell>
-      <TableCell className="max-w-[200px]">
-        <div className="truncate" title={result.title || result.domain}>
-          {result.title || result.domain}
-        </div>
-      </TableCell>
-      <TableCell className="max-w-[200px]">
-        <a
-          href={`https://${result.domain}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:underline truncate block"
-          title={result.domain}
-        >
-          {result.domain}
-        </a>
-      </TableCell>
-      <TableCell className="max-w-[300px]">
-        <div className="truncate" title={result.description}>
-          {result.description}
-        </div>
-      </TableCell>
-      <TableCell>
-        {result.email?.[0] && (
+    <>
+      <TableRow>
+        <TableCell>{index}</TableCell>
+        <TableCell className="max-w-[200px]">
+          <div className="truncate" title={result.title || result.domain}>
+            {result.title || result.domain}
+          </div>
+        </TableCell>
+        <TableCell className="max-w-[200px]">
           <a
-            href={`mailto:${result.email[0]}`}
-            className="text-blue-400 hover:underline"
+            href={`https://${result.domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:underline truncate block"
+            title={result.domain}
           >
-            {result.email[0]}
+            {result.domain}
           </a>
-        )}
-      </TableCell>
-      <TableCell>
-        {hasSocials ? (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Share2 className="h-4 w-4 mr-2" />
-                {socialLinks.length} platforms
+        </TableCell>
+        <TableCell className="max-w-[300px]">
+          <div className="truncate" title={result.description}>
+            {result.description}
+          </div>
+        </TableCell>
+        <TableCell>
+          {result.email?.[0] && (
+            <a
+              href={`mailto:${result.email[0]}`}
+              className="text-blue-400 hover:underline"
+            >
+              {result.email[0]}
+            </a>
+          )}
+        </TableCell>
+        <TableCell>
+          {hasSocials ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  {socialLinks.length} platforms
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid grid-cols-2 gap-2">
+                  {socialLinks.map(([platform, urls]) => (
+                    <a
+                      key={platform}
+                      href={urls[0]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent"
+                    >
+                      {socialIcons[platform as keyof typeof socialIcons]}
+                      <span className="capitalize">{platform}</span>
+                    </a>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <span className="text-muted-foreground text-sm">
+              No socials found
+            </span>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-500 hover:text-red-700 hover:bg-red-200"
+              onClick={() => onDeleteRow(result.domain)}
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+            {hasEmail && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-blue-500 hover:text-blue-700 hover:bg-blue-200"
+                onClick={handleGenerateEmail}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Mail className="h-5 w-5" />
+                )}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid grid-cols-2 gap-2">
-                {socialLinks.map(([platform, urls]) => (
-                  <a
-                    key={platform}
-                    href={urls[0]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent"
-                  >
-                    {socialIcons[platform as keyof typeof socialIcons]}
-                    <span className="capitalize">{platform}</span>
-                  </a>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-        ) : (
-          <span className="text-muted-foreground text-sm">
-            No socials found
-          </span>
-        )}
-      </TableCell>
-      <TableCell>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-red-500 hover:text-red-700 hover:bg-red-200"
-          onClick={() => onDeleteRow(result.domain)}
-        >
-          <Trash2 className="h-5 w-5" />
-        </Button>
-      </TableCell>
-    </TableRow>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+      <EmailTemplateDialog
+        isOpen={showEmailDialog}
+        onClose={() => setShowEmailDialog(false)}
+        emailContent={result.emailTemplate || ""}
+        companyName={result.title || result.domain}
+      />
+    </>
   );
 }

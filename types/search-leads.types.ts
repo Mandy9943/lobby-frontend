@@ -21,6 +21,7 @@ export interface ScrapeResult {
   email?: string[];
   phone?: string[];
   social_links: Partial<Record<SocialPatterns, string[]>>;
+  emailTemplate?: string;
 }
 
 export interface SearchLeadsResponse {

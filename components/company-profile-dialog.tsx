@@ -42,8 +42,6 @@ function CompanyProfileDialog({
   open: boolean;
   setOpen: (open: boolean) => void;
 }) {
-  console.log("render");
-
   const companyProfileSchema = z.object({
     website: z
       .string()
