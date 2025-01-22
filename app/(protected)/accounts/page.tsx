@@ -150,7 +150,11 @@ export default function Accounts() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={loading}
+                        disabled={
+                          loading ||
+                          (user?.subscription?.plan?.toLowerCase() ||
+                            "free") === plan.name.toLowerCase()
+                        }
                         style={
                           plan.name !== "Free"
                             ? { color: "#FF5D0A", borderColor: "#FF5D0A" }
@@ -164,8 +168,8 @@ export default function Accounts() {
                       >
                         {loading
                           ? "Processing..."
-                          : user?.subscription?.plan?.toLowerCase() ===
-                            plan.name.toLowerCase()
+                          : (user?.subscription?.plan?.toLowerCase() ||
+                              "free") === plan.name.toLowerCase()
                           ? "Current Plan"
                           : "Upgrade"}
                       </Button>
