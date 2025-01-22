@@ -1,12 +1,12 @@
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "./useAuth";
 
 export const useProject = () => {
   const { user, error, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useParams<{ project: string }>();
 
-  const projectId = searchParams.get("project");
+  const projectId = searchParams.project;
 
   const changeProject = (projectId: string) => {
     router.push(`?project=${projectId}`);
