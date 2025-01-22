@@ -17,6 +17,13 @@ export interface User {
     userId: string;
     gmailAccounts: string[];
   }[];
+
+  subscription?: {
+    plan: string;
+    currentPeriodEnd: string;
+    status: string;
+    id: string;
+  };
 }
 
 export function useAuth() {
