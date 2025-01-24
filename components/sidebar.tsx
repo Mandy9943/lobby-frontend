@@ -2,12 +2,21 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Home, Mail, Plug, UserCircle, Users } from "lucide-react";
+import {
+  Briefcase,
+  History,
+  Home,
+  Mail,
+  Plug,
+  UserCircle,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { SettingsMenu } from "./settings-menu";
 import { TeamSwitcher } from "./team-switcher";
 const navItems = [
   { name: "Home", href: "/", icon: Home },
+  { name: "Previous Searches", href: "/previous-searches", icon: History },
   { name: "Campaigns", href: "/campaigns", icon: Briefcase },
   { name: "Emails", href: "/emails", icon: Mail },
   { name: "Responders", href: "/responders", icon: Users },

@@ -7,6 +7,7 @@ import {
 } from "@/services/leads-api/search-leads";
 import { ScrapeResult } from "@/types/search-leads.types";
 import { Loader } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { FeatureCards } from "./components/FeatureCards";
@@ -17,6 +18,7 @@ import { SearchForm } from "./components/SearchForm";
 import { SearchSection } from "./components/SearchSection";
 
 export default function EmailValidationTable() {
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const localStorageKey = user ? `searchJob_${user.email}` : null;
 
@@ -44,7 +46,6 @@ export default function EmailValidationTable() {
     if (!localStorageKey) return;
 
     const savedState = localStorage.getItem(localStorageKey);
-    console.log("savedState", savedState);
 
     if (savedState) {
       try {
@@ -109,7 +110,22 @@ export default function EmailValidationTable() {
     }
   );
 
-  // Modify the useEffect that handles statusData to save initial results
+  // Add this new effect to handle URL parameters
+  useEffect(() => {
+    const queryParam = searchParams.get("query");
+    const resultsParam = searchParams.get("results");
+
+    if (queryParam && resultsParam) {
+      setSearchQuery(queryParam);
+      setJobId(resultsParam);
+      setSearchStatus("pending");
+
+      // Clear URL parameters without refreshing the page
+      window.history.replaceState({}, "", "/");
+    }
+  }, [searchParams]);
+
+  // Modify the existing statusData effect to handle both new searches and loaded previous results
   useEffect(() => {
     if (!statusData) return;
     if (statusData.status === "done") {
@@ -117,29 +133,30 @@ export default function EmailValidationTable() {
       setResults(statusData.result?.data || []);
       originalResults.current = statusData.result?.data || [];
 
-      // Save initial results to localStorage
-      if (localStorageKey && statusData.result?.data) {
+      // Only save to localStorage if this is a new search (not viewing previous results)
+      if (localStorageKey && !searchParams.get("results")) {
         localStorage.setItem(
           localStorageKey,
           JSON.stringify({
             jobId,
             query: searchQuery,
-            results: statusData.result.data,
+            results: statusData.result?.data,
             page: 1,
           })
         );
       }
 
-      // Check if there were any successful crawls
       if (statusData.result?.successfulCrawls === 0) {
         setHasMoreData(false);
       }
     } else if (statusData.status === "failed") {
       setSearchStatus("failed");
       setError(statusData.result?.message || "Search failed");
-      if (localStorageKey) localStorage.removeItem(localStorageKey);
+      if (localStorageKey && !searchParams.get("results")) {
+        localStorage.removeItem(localStorageKey);
+      }
     }
-  }, [statusData, localStorageKey, jobId, searchQuery]);
+  }, [statusData, localStorageKey, jobId, searchQuery, searchParams]);
 
   // Handle case where the fetch itself failed (statusError)
   useEffect(() => {

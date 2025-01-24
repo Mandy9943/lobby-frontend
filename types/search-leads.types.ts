@@ -25,10 +25,20 @@ export interface ScrapeResult {
 }
 
 export interface SearchLeadsResponse {
-  message: string;
+  message?: string | undefined;
   query: string;
   data: ScrapeResult[];
   totalDomains: number;
   successfulCrawls: number;
   totalTimeMs: number;
+}
+
+export interface SearchJobResponse {
+  query: string;
+  result: SearchLeadsResponse | null;
+  id: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
 }

@@ -1,4 +1,7 @@
-import { SearchLeadsResponse } from "@/types/search-leads.types";
+import {
+  SearchJobResponse,
+  SearchLeadsResponse,
+} from "@/types/search-leads.types";
 import leadsApi from ".";
 
 export const searchLeads = async (query: string) => {
@@ -20,6 +23,26 @@ export const getSearchJobStatus = async (jobId: string) => {
   const res = await leadsApi.get<{
     status: "pending" | "done" | "failed";
     result?: SearchLeadsResponse;
-  }>(`/search-jobs/${jobId}/status`);
+  }>(`/search-jobs/status/${jobId}`);
+  return res.data;
+};
+
+export const getPreviousSearchLeads = async () => {
+  const res = await leadsApi.get<
+    {
+      query: string;
+      resultsCount: number;
+      id: string;
+      status: string;
+      date: Date;
+    }[]
+  >(`/search-jobs/previous`);
+  return res.data;
+};
+
+export const getPreviousSearchLeadsById = async (id: string) => {
+  const res = await leadsApi.get<SearchJobResponse>(
+    `/search-jobs/previous/${id}`
+  );
   return res.data;
 };
