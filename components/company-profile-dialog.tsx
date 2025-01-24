@@ -43,11 +43,7 @@ function CompanyProfileDialog({
   setOpen: (open: boolean) => void;
 }) {
   const companyProfileSchema = z.object({
-    website: z
-      .string()
-      .url({ message: "Invalid website URL" })
-      .optional()
-      .nullable(),
+    website: z.string().optional().nullable(),
     ownerFirst: z
       .string()
       .min(2, { message: "First name must be at least 2 characters" })
@@ -56,14 +52,12 @@ function CompanyProfileDialog({
       .nullable(),
     ownerLast: z
       .string()
-      .min(2, { message: "Last name must be at least 2 characters" })
       .max(50, { message: "Last name must not exceed 50 characters" })
       .optional()
       .nullable(),
     size: z.nativeEnum(CompanySize),
     location: z
       .string()
-      .min(2, { message: "Location must be at least 2 characters" })
       .max(100, { message: "Location must not exceed 100 characters" })
       .optional()
       .nullable(),
@@ -76,7 +70,8 @@ function CompanyProfileDialog({
     goals: z
       .array(z.nativeEnum(OutreachGoal))
       .min(1, { message: "At least one goal is required" })
-      .max(5, { message: "Maximum 5 goals allowed" }),
+      .max(8, { message: "Maximum 8 goals allowed" }),
+    emailGuidelines: z.string().optional().nullable(),
   });
 
   const { project } = useProject();
@@ -98,6 +93,7 @@ function CompanyProfileDialog({
       ownerLast: "",
       location: "",
       industry: "",
+      emailGuidelines: "",
     },
   });
 
@@ -110,6 +106,7 @@ function CompanyProfileDialog({
       setValue("location", fetchedProfile.location ?? "");
       setValue("industry", fetchedProfile.industry ?? "");
       setValue("goals", fetchedProfile.goals ?? []);
+      setValue("emailGuidelines", fetchedProfile.emailGuidelines ?? "");
     }
   }, [fetchedProfile, setValue]);
   const goals = watch("goals") || [];
@@ -123,6 +120,7 @@ function CompanyProfileDialog({
       console.error("Error saving changes:", error);
     }
   };
+  console.log(errors);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

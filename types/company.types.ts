@@ -46,5 +46,6 @@ export interface CompanyProfile {
   goals: OutreachGoal[];
   createdAt: Date;
   updatedAt: Date;
+  emailGuidelines?: string | null;
   // Add any other fields that match your backend schema
 }
