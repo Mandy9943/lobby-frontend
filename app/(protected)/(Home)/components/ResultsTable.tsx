@@ -132,7 +132,7 @@ export function ResultsTable({
                         Description
                       </TableHead>
                       <TableHead className="text-muted-foreground">
-                        Email
+                        Contact
                       </TableHead>
                       <TableHead className="text-muted-foreground">
                         Socials
@@ -240,15 +240,47 @@ function ResultRow({ index, result, onDeleteRow, projectId }: ResultRowProps) {
             {result.description}
           </div>
         </TableCell>
-        <TableCell>
-          {result.email?.[0] && (
-            <a
-              href={`mailto:${result.email[0]}`}
-              className="text-blue-400 hover:underline"
-            >
-              {result.email[0]}
-            </a>
-          )}
+        <TableCell className="min-w-[200px]">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {result.email?.[0] ? (
+                <>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                    Email
+                  </span>
+                  <a
+                    href={`mailto:${result.email[0]}`}
+                    className="text-blue-400 hover:underline text-sm"
+                  >
+                    {result.email[0]}
+                  </a>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-sm">
+                  No email found
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {result.phone?.[0] ? (
+                <>
+                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                    Phone
+                  </span>
+                  <a
+                    href={`tel:${result.phone[0]}`}
+                    className="text-blue-400 hover:underline text-sm"
+                  >
+                    {result.phone[0]}
+                  </a>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-sm">
+                  No phone found
+                </span>
+              )}
+            </div>
+          </div>
         </TableCell>
         <TableCell>
           {hasSocials ? (
