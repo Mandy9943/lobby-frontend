@@ -20,7 +20,7 @@ import {
 import { SubscriptionStatus } from "@/types/subscription.types";
 import { loadStripe } from "@stripe/stripe-js";
 import { PlusIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -35,7 +35,7 @@ const accounts = [
   },
 ];
 
-export default function Accounts() {
+function AccountsContent() {
   const [plans, setPlans] = useState<SubscriptionPlans | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -259,5 +259,13 @@ export default function Accounts() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function Accounts() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AccountsContent />
+    </Suspense>
   );
 }

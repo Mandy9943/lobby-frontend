@@ -9,7 +9,7 @@ import {
 import { ScrapeResult } from "@/types/search-leads.types";
 import { Loader } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { FeatureCards } from "./components/FeatureCards";
 import { LoadingFacts } from "./components/LoadingFacts";
@@ -18,7 +18,7 @@ import { ResultsTable } from "./components/ResultsTable";
 import { SearchForm } from "./components/SearchForm";
 import { SearchSection } from "./components/SearchSection";
 
-export default function EmailValidationTable() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const localStorageKey = user ? `searchJob_${user.email}` : null;
@@ -423,5 +423,13 @@ export default function EmailValidationTable() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
