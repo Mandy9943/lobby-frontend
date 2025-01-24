@@ -17,6 +17,7 @@ import {
   subscriptionService,
   type SubscriptionPlans,
 } from "@/services/subscription-service";
+import { SubscriptionStatus } from "@/types/subscription.types";
 import { loadStripe } from "@stripe/stripe-js";
 import { PlusIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -39,6 +40,8 @@ export default function Accounts() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<SubscriptionStatus | null>(null);
 
   console.log(user);
 
@@ -57,6 +60,15 @@ export default function Accounts() {
       });
     }
   }, [toast]);
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const status = await subscriptionService.getSubscriptionStatus();
+      setSubscriptionStatus(status);
+    } catch (error) {
+      console.error("Failed to load subscription status:", error);
+    }
+  };
 
   const handleUpgrade = async (priceId: string) => {
     try {
@@ -108,7 +120,8 @@ export default function Accounts() {
 
   useEffect(() => {
     loadPlans();
-  }, [loadPlans]);
+    loadSubscriptionStatus();
+  }, [loadPlans, loadSubscriptionStatus]);
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -124,6 +137,48 @@ export default function Accounts() {
           <AccountCard key={index} account={account} />
         ))}
       </div>
+
+      {subscriptionStatus && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Subscription</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <span
+                  className={`font-medium ${
+                    subscriptionStatus.status === "ACTIVE"
+                      ? "text-green-600"
+                      : subscriptionStatus.status === "CANCELED"
+                      ? "text-red-600"
+                      : "text-yellow-600"
+                  }`}
+                >
+                  {subscriptionStatus.status}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current Plan:</span>
+                <span className="font-medium">{subscriptionStatus.plan}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current Period:</span>
+                <span className="font-medium">
+                  {new Date(
+                    subscriptionStatus.currentPeriodStart
+                  ).toLocaleDateString()}{" "}
+                  -{" "}
+                  {new Date(
+                    subscriptionStatus.currentPeriodEnd
+                  ).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -190,7 +245,15 @@ export default function Accounts() {
             Manage your subscription and billing information here. For any
             questions, please contact our support team.
           </p>
-          <Button variant="outline" disabled={loading} onClick={handleCancel}>
+          <Button
+            variant="outline"
+            disabled={
+              loading ||
+              !subscriptionStatus ||
+              subscriptionStatus.status !== "ACTIVE"
+            }
+            onClick={handleCancel}
+          >
             {loading ? "Processing..." : "Cancel Subscription"}
           </Button>
         </CardContent>

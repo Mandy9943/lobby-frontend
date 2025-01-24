@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   createSearchLeadsJob,
@@ -41,6 +42,8 @@ export default function EmailValidationTable() {
   // Add a new piece of state for loadMoreJobId
   const [loadMoreJobId, setLoadMoreJobId] = useState<string | null>(null);
 
+  const { toast } = useToast();
+
   // Load saved job state on mount
   useEffect(() => {
     if (!localStorageKey) return;
@@ -69,8 +72,6 @@ export default function EmailValidationTable() {
         if (savedPage) {
           setPage(savedPage);
         }
-
-        console.log("savedJobId", savedJobId);
       } catch (err) {
         console.error("Error parsing saved job state:", err);
       }
@@ -130,8 +131,19 @@ export default function EmailValidationTable() {
     if (!statusData) return;
     if (statusData.status === "done") {
       setSearchStatus("done");
-      setResults(statusData.result?.data || []);
-      originalResults.current = statusData.result?.data || [];
+      const results = statusData.result?.data || [];
+      setResults(results);
+      originalResults.current = results;
+
+      // Show toast if no results found
+      if (results.length === 0) {
+        toast({
+          title: "No leads found",
+          description:
+            "We couldn't find any leads matching your search criteria. Try adjusting your search terms.",
+          variant: "destructive",
+        });
+      }
 
       // Only save to localStorage if this is a new search (not viewing previous results)
       if (localStorageKey && !searchParams.get("results")) {
@@ -156,7 +168,7 @@ export default function EmailValidationTable() {
         localStorage.removeItem(localStorageKey);
       }
     }
-  }, [statusData, localStorageKey, jobId, searchQuery, searchParams]);
+  }, [statusData, localStorageKey, jobId, searchQuery, searchParams, toast]);
 
   // Handle case where the fetch itself failed (statusError)
   useEffect(() => {
@@ -204,6 +216,11 @@ export default function EmailValidationTable() {
           );
         }
       } else {
+        toast({
+          title: "No more results",
+          description: "We couldn't find any additional leads.",
+          variant: "destructive",
+        });
         setError("No more unique results found");
         setHasMoreData(false);
       }
@@ -227,6 +244,7 @@ export default function EmailValidationTable() {
     hasMoreData,
     jobId,
     searchQuery,
+    toast,
   ]);
 
   // Optionally, handle loadMoreError if you want in a parallel effect
@@ -344,7 +362,6 @@ export default function EmailValidationTable() {
       </div>
     );
   }
-  console.log(loadingMore);
 
   if (searchStatus === "done") {
     return (

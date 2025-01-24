@@ -1,3 +1,4 @@
+import { SubscriptionStatus } from "@/types/subscription.types";
 import leadsApi from "./leads-api";
 
 export interface Plan {
@@ -33,5 +34,17 @@ export const subscriptionService = {
   async cancelSubscription() {
     const response = await leadsApi.post("/subscription/cancel");
     return response.data;
+  },
+
+  async getSubscriptionStatus() {
+    const response = await leadsApi.get<SubscriptionStatus>(
+      "/subscription/status"
+    );
+    return response.data;
+  },
+
+  async handleSubscriptionUpdated(status: SubscriptionStatus) {
+    // You can implement any client-side logic needed when subscription is updated
+    console.log("Subscription updated:", status);
   },
 };
