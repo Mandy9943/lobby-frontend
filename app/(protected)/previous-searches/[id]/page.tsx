@@ -2,16 +2,26 @@
 
 import { getPreviousSearchLeadsById } from "@/services/leads-api/search-leads";
 import { format } from "date-fns";
-import { Loader } from "lucide-react";
+import { Loader, Search } from "lucide-react";
+import { useState } from "react";
 import useSWR from "swr";
 
 export default function SearchDetails({ params }: { params: { id: string } }) {
+  const [filterQuery, setFilterQuery] = useState("");
+
   const {
     data: search,
     error,
     isLoading,
   } = useSWR(`/api/search-leads/previous/${params.id}`, () =>
     getPreviousSearchLeadsById(params.id)
+  );
+
+  const filteredResults = search?.result?.data.filter(
+    (company) =>
+      company.title?.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      company.domain.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      company.description?.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -52,14 +62,28 @@ export default function SearchDetails({ params }: { params: { id: string } }) {
           </p>
           <p className="flex items-center">
             <span className="font-medium mr-2">Results:</span>
-            {search?.result?.data.length || 0} companies found
+            {filteredResults?.length || 0} / {search?.result?.data.length || 0}{" "}
+            companies found
           </p>
+        </div>
+      </div>
+
+      <div className="mb-6 relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <input
+            type="text"
+            placeholder="Filter companies..."
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
         </div>
       </div>
 
       {search?.result ? (
         <div className="grid gap-6">
-          {search?.result.data.map((company) => (
+          {(filteredResults || []).map((company) => (
             <div
               key={company.domain}
               className="bg-card border rounded-xl p-6 space-y-4 hover:shadow-lg transition-shadow"
