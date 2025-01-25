@@ -59,10 +59,17 @@ export function AICustomizationDialog({
 
   useEffect(() => {
     if (fetchedProfile?.emailGuidelines) {
-      const tone = fetchedProfile.emailGuidelines.split("\n")[0].split(": ")[1];
-      const instructions = fetchedProfile.emailGuidelines
-        .split("\n")[1]
-        .split(": ")[1];
+      // Find the first line that starts with "Writing Tone: " and extract the tone
+      const toneMatch =
+        fetchedProfile.emailGuidelines.match(/Writing Tone: (.*)/);
+      const tone = toneMatch ? toneMatch[1] : "";
+
+      // Find the content after "User Specific Instructions: " until the end of string
+      const instructionsMatch = fetchedProfile.emailGuidelines.match(
+        /User Specific Instructions: ([\s\S]*)/
+      );
+      const instructions = instructionsMatch ? instructionsMatch[1].trim() : "";
+
       setTone(tone);
       setInstructions(instructions);
     }
