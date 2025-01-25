@@ -38,7 +38,23 @@ export function ResultsTable({
 }: ResultsTableProps) {
   const { project } = useProject();
   const [generatingAll, setGeneratingAll] = useState(false);
-  const companiesWithEmail = results.filter(
+
+  // Sort results based on contact information priority
+  const sortedResults = [...results].sort((a, b) => {
+    const aHasEmail = a.email && a.email.length > 0;
+    const bHasEmail = b.email && b.email.length > 0;
+    const aHasPhone = a.phone && a.phone.length > 0;
+    const bHasPhone = b.phone && b.phone.length > 0;
+
+    if (aHasEmail && !bHasEmail) return -1;
+    if (!aHasEmail && bHasEmail) return 1;
+    if (aHasPhone && !bHasPhone) return -1;
+    if (!aHasPhone && bHasPhone) return 1;
+    return 0;
+  });
+
+  // Update the companiesWithEmail to use sortedResults
+  const companiesWithEmail = sortedResults.filter(
     (r) => r.email && r.email.length > 0
   );
   const hasCompaniesWithEmail = companiesWithEmail.length > 0;
@@ -143,7 +159,7 @@ export function ResultsTable({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {results.map((result, index) => (
+                    {sortedResults.map((result, index) => (
                       <ResultRow
                         key={result.domain}
                         index={index + 1}
