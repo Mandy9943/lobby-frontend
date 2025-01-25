@@ -61,14 +61,14 @@ function AccountsContent() {
     }
   }, [toast]);
 
-  const loadSubscriptionStatus = async () => {
+  const loadSubscriptionStatus = useCallback(async () => {
     try {
       const status = await subscriptionService.getSubscriptionStatus();
       setSubscriptionStatus(status);
     } catch (error) {
       console.error("Failed to load subscription status:", error);
     }
-  };
+  }, []);
 
   const handleUpgrade = async (priceId: string) => {
     try {
